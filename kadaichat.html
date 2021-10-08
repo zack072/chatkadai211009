@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/kadai.css">
+    <title>駐車場屋課題</title>
+</head>
+<header>
+    <h1 class="hh">共有</h1>
+</header>
+<style>
+    #output li {
+        background: yellow;
+    }
+</style>
+
+<body>
+    <section>
+        <ul class="news__list">
+            <li class="news__item">
+                <!-- イエローカード -->
+                <p id="yellow_btn" class="btn1"></p>
+                <div class="news__eyecatch"></div>
+            <li class="news__item">
+                <!-- レッドカード -->
+                <p id="red_btn" class="btn2"></p>
+                <div class="news__eyecatch"></div>
+            </li>
+        </ul>
+
+    </section>
+    <!-- 入力場所を作成しよう -->
+    <div id="test">
+        <ul>
+            <li>
+                <label for="name">name</label>
+                <input type="text" id="name">
+            </li>
+            <li class="sample"><textarea name="" id="text" cols="175" rows="10"
+                    style="color: black ;background-color: yellow;"></textarea></li>
+            <li><button id="send">send</button></li>
+            <button id="back_btn">back</button>
+        </ul>
+    </div>
+    <div id="test2">
+        <ul>
+            <li>
+                <label for="name">name</label>
+                <input type="text" id="name">
+            </li>
+            <li class="sample2"><textarea name="" id="text2" cols="175" rows="10"
+                    style="color: black ;background-color:red;"></textarea></li>
+            <li><button id="send2">send</button></li>
+            <button id="btn2">back</button>
+        </ul>
+    </div>
+
+    <audio src="" id="play-button"></audio>
+    <h1 class="hh"><button><img src="img/04.jpg" alt=""></button></h1>
+
+    <!-- データ出力場所 -->
+    <ul id="output"></ul>
+
+
+    <body>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script>
+            $('#play-button').on('click', function () {
+                $("#play-button").get(0).play();
+            });
+        </script>
+        <script>
+            //日時をいい感じの形式にする関数
+            function convertFromFirestoreTimestampToDatetime(timestamp) {
+                const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+                const Y = _d.getFullYear();
+                const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+                const d = _d.getDate().toString().padStart(2, '0');
+                const H = _d.getHours().toString().padStart(2, '0');
+                const i = _d.getMinutes().toString().padStart(2, '0');
+                const s = _d.getSeconds().toString().padStart(2, '0');
+                return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+            }
+        </script>
+        <!-- 以下にfirebaseのコードを貼り付けよう -->
+        <script type="module">
+            // Import the functions you need from the SDKs you need
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+            // TODO: Add SDKs for Firebase products that you want to use
+            // https://firebase.google.com/docs/web/setup#available-libraries
+            import {
+                getFirestore, collection, addDoc, serverTimestamp, query,
+                orderBy, onSnapshot,
+            } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
+            // Your web app's Firebase configuration
+            const firebaseConfig = {
+                apiKey: "",
+                authDomain: "chatapp03-e3dcc.firebaseapp.com",
+                projectId: "chatapp03-e3dcc",
+                storageBucket: "chatapp03-e3dcc.appspot.com",
+                messagingSenderId: "674778347716",
+                appId: "1:674778347716:web:18439cf1252a422c4bf191"
+            };
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            //追記
+            const db = getFirestore(app);
+
+            $('#send').on('click', function () {
+                alert('OK')
+
+                addDoc(collection(db, 'chat'), {
+                    name: $('#name').val(),
+                    text: $('#text').val(),
+                    time: serverTimestamp(),
+                });
+                $('#text').val('');
+            });
+
+            const q = query(collection(db, 'chat'), orderBy('time', 'desc'));
+            // ↓onSnapshotでcloud firestoreのデータ変更時に実行される！
+            onSnapshot(q, (querySnapshot) => {
+                // querySnapshot.docsにcloud firestoreのデータが配列形式で入る
+                const dataArray = []; // 必要なデータだけが入った新しい配列を作成
+                querySnapshot.docs.forEach(function (doc) {
+                    const data = {
+                        id: doc.id,
+                        data: doc.data(),
+                    }
+                    dataArray.push(data);
+                    console.log(dataArray);
+                });
+
+
+                const tagArray = []; // `dataArray`は前回出てきたオブジェクトの配列
+                dataArray.forEach(function (data) {
+                    const datetime = convertFromFirestoreTimestampToDatetime(data.data.timestamp);
+                    tagArray.push(`
+        <li id=${data.id}>
+        <p>${data.data.name}</p>
+        <p>${data.data.text}</p>
+        <p>${datetime}</p>
+        </li>
+        `)
+                })
+
+                $('#output').html(tagArray.join(''));
+            });
+            // const data = [{ ...}, { ...}, { ...}, ...];
+            // // 配列の各要素に対して下記の処理でデータが取れる．
+            // const id = { ...}.id;
+            // const data = { ...}.data();
+            // // 「必要なデータだけを入れた新しい配列」を作成
+            // const dataArray = [];
+            // dataArray.push({ id: id, data: data }); //
+
+            // 画面読込時に実行する。
+            $("#test").hide(); // 初期表示で隠しておく
+
+            // // red 画面読込時に実行する。
+            $("#test2").hide(); // 初期表示で隠しておく
+
+            // 指定ボタンを押下すると処理を開始する
+            $("#yellow_btn").on("click", function () {
+                $("#test").slideDown(500);
+
+            });
+            $("#back_btn").on("click", function () {
+                $("#test").slideUp(500);
+            });
+
+            // 指定ボタンを押下すると処理を開始する
+            $("#red_btn").on("click", function () {
+                $("#test2").slideDown(500);
+            });
+
+            // 指定ボタンを押下すると処理を開始する
+            $("#btn2").on("click", function () {
+                $("#test2").slideUp(500); // hideは隠す、slidUpは上に上がって消える
+            });
+
+        </script>
+    </body>
+
+</html>
